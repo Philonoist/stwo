@@ -174,6 +174,10 @@ impl<E: FrameworkEval> FrameworkComponent<E> {
         &self.trace_locations
     }
 
+    pub fn preproccessed_column_indices(&self) -> &[usize] {
+        &self.preprocessed_column_indices
+    }
+
     pub const fn claimed_sum(&self) -> SecureField {
         self.claimed_sum
     }
