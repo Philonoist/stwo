@@ -173,6 +173,10 @@ impl<E: FrameworkEval> FrameworkComponent<E> {
     pub fn trace_locations(&self) -> &[TreeSubspan] {
         &self.trace_locations
     }
+
+    pub const fn claimed_sum(&self) -> SecureField {
+        self.claimed_sum
+    }
 }
 
 impl<E: FrameworkEval> Component for FrameworkComponent<E> {
