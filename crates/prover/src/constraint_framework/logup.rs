@@ -5,7 +5,7 @@ use num_traits::{One, Zero};
 
 use super::EvalAtRow;
 use crate::core::backend::simd::column::SecureColumn;
-use crate::core::backend::simd::m31::{PackedBaseField, LOG_N_LANES};
+use crate::core::backend::simd::m31::PackedBaseField;
 use crate::core::backend::simd::prefix_sum::inclusive_prefix_sum;
 use crate::core::backend::simd::qm31::PackedSecureField;
 use crate::core::backend::simd::SimdBackend;
@@ -217,20 +217,31 @@ impl LogupColGenerator<'_> {
 
     /// Finalizes generating the column.
     pub fn finalize_col(mut self) {
+        let chunk_size = 4;
         let denom_inv = PackedSecureField::batch_inverse(&self.gen.denom.data);
+        let denom_inv_chunks = denom_inv.chunks(chunk_size);
+        let numerator_chunks = self.numerator.chunks_mut(chunk_size);
 
-        #[allow(clippy::needless_range_loop)]
-        for vec_row in 0..(1 << (self.gen.log_size - LOG_N_LANES)) {
-            unsafe {
-                let value = self.numerator.packed_at(vec_row) * denom_inv[vec_row];
-                let prev_value = self
-                    .gen
-                    .trace
-                    .last()
-                    .map(|col| col.packed_at(vec_row))
-                    .unwrap_or_else(PackedSecureField::zero);
-                self.numerator.set_packed(vec_row, value + prev_value)
-            };
+        for (chunk_idx, (mut numerator_chunk, denom_inv_chunk)) in numerator_chunks
+            .into_iter()
+            .zip(denom_inv_chunks)
+            .enumerate()
+        {
+            #[allow(clippy::needless_range_loop)]
+            for idx_in_chunk in 0..chunk_size {
+                unsafe {
+                    let vec_row = chunk_idx * chunk_size + idx_in_chunk;
+                    let value =
+                        numerator_chunk.packed_at(idx_in_chunk) * denom_inv_chunk[idx_in_chunk];
+                    let prev_value = self
+                        .gen
+                        .trace
+                        .last()
+                        .map(|col| col.packed_at(vec_row))
+                        .unwrap_or_else(PackedSecureField::zero);
+                    numerator_chunk.set_packed(idx_in_chunk, value + prev_value)
+                }
+            }
         }
 
         self.gen.trace.push(self.numerator)
