@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::fields::qm31::SecureField;
 use super::vcs::ops::MerkleHasher;
 
@@ -11,7 +13,7 @@ pub use blake2s::Blake2sChannel;
 
 pub const EXTENSION_FELTS_PER_HASH: usize = 2;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct ChannelTime {
     pub n_challenges: usize,
     n_sent: usize,
@@ -28,7 +30,7 @@ impl ChannelTime {
     }
 }
 
-pub trait Channel: Default + Clone {
+pub trait Channel: Default + Clone + Debug {
     const BYTES_PER_HASH: usize;
 
     fn trailing_zeros(&self) -> u32;
