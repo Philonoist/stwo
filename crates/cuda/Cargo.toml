@@ -1,0 +1,26 @@
+[package]
+name = "stwo-cuda"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bytemuck.workspace = true
+cudarc = { version = "0.11.8", features = ["cuda-version-from-build-system"] }
+serde.workspace = true
+stwo-prover = { path = "../prover" }
+itertools.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
+num-traits.workspace = true
+
+[[bench]]
+harness = false
+name = "merkle"
+
+[[bench]]
+harness = false
+name = "bit_rev"
