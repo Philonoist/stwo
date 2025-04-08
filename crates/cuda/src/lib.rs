@@ -64,7 +64,11 @@ pub static CUDA_CTX: LazyLock<Arc<CudaDevice>> = LazyLock::new(|| {
         .load_ptx(
             ptx,
             "blake2s",
-            &["commit_layer_no_parent", "commit_layer_with_parent"],
+            &[
+                "commit_layer_no_parent",
+                "commit_layer_with_parent",
+                "grind_blake2s",
+            ],
         )
         .unwrap();
 

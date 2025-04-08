@@ -66,6 +66,70 @@ commit_layer_with_parent(H *dst, H *parent, unsigned int **cols, int n, int n_co
     dst[idx] = state;
 }
 
+extern "C" __global__ void
+grind_blake2s(const unsigned int *digest, unsigned int *result, unsigned int pow_bits, unsigned int batch_size, unsigned long long base_nonce)
+{
+    int idx = threadIdx.x + (blockIdx.x * blockDim.x);
+    if (idx >= batch_size)
+        return;
+
+    // Process 8 nonces per thread
+    const int NONCES_PER_THREAD = 8;
+    unsigned long long thread_base_nonce = base_nonce + (idx * NONCES_PER_THREAD);
+
+    // Initialize state with provided digest once
+    H state;
+
+    for (int offset = 0; offset < NONCES_PER_THREAD; offset++)
+    {
+        unsigned long long nonce = thread_base_nonce + offset;
+
+        for (int i = 0; i < 8; i++)
+        {
+            state.s[i] = digest[i];
+        }
+
+        // Prepare message with nonce
+        unsigned int m[16] = {0};
+        m[0] = (unsigned int)(nonce & 0xFFFFFFFF);
+        m[1] = (unsigned int)(nonce >> 32);
+
+        // Compress
+        compress(&state, m);
+
+        // Count trailing zeros - supporting up to 63 bits by checking two words
+        unsigned int trailing_zeros = 0;
+
+        if (state.s[0] == 0)
+        {
+            // First word is all zeros (32 trailing zeros)
+            trailing_zeros = 32;
+
+            // Check second word
+            if (state.s[1] == 0)
+            {
+                // Both words are zero, maximum 64 trailing zeros
+                trailing_zeros = 64;
+            }
+            else
+            {
+                // Add trailing zeros from second word
+                trailing_zeros += __ffs(state.s[1]) - 1;
+            }
+        }
+        else
+        {
+            // Count trailing zeros in first word
+            trailing_zeros = __ffs(state.s[0]) - 1;
+        }
+
+        if (trailing_zeros >= pow_bits)
+        {
+            atomicMin(result, idx * NONCES_PER_THREAD + offset);
+        }
+    }
+}
+
 static __constant__ const unsigned char SIGMA[12][16] = {
     {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
     {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},

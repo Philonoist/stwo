@@ -94,8 +94,6 @@ fn batch_inverse<F: Field>(
 
 #[test]
 fn test_batch_inv_m31() {
-    use stwo_prover::core::fields::FieldExpOps;
-
     use crate::CudaColumn;
 
     const LOG_SIZE: u32 = 10;
