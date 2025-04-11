@@ -1,5 +1,6 @@
 mod accumulation;
 mod blake2s;
+mod circle;
 mod m31;
 
 use std::fmt::Debug;
